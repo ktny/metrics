@@ -78,7 +78,7 @@ def parse_cpu_csv(text: str) -> pd.DataFrame:
         "%idle",
     ]
     existing = [c for c in keep if c in df.columns]
-    df = df[existing].copy()
+    df = df.loc[:, existing].copy()
     df = df.rename(
         columns={
             "CPU": "cpu",
@@ -155,7 +155,7 @@ def parse_mem_csv(text: str) -> pd.DataFrame:
         ]
         if c in df.columns
     ]
-    return df[keep]
+    return df.loc[:, keep]
 
 
 def parse_disk_json(text: str) -> pd.DataFrame:
@@ -332,10 +332,11 @@ def main():
             if wanted and wanted != [""]:
                 df = df[df["cpu"].isin(wanted)]
             series = {}
+            cpus = sorted(pd.Series(df["cpu"]).astype(str).unique().tolist())
             for m in cpu_metrics:
-                for cpu in sorted(df["cpu"].unique()):
+                for cpu in cpus:
                     key = f"{m}[{cpu}]"
-                    series[key] = df[df["cpu"] == cpu].set_index("timestamp")[m]
+                    series[key] = df.loc[df["cpu"] == cpu].set_index("timestamp")[m]
             if series:
                 chart_df = pd.concat(series, axis=1).sort_index()
                 st.line_chart(chart_df)
@@ -383,7 +384,11 @@ def main():
             st.error(f"Disk read failed: {e}")
             ddf = None
         if ddf is not None and not ddf.empty:
-            devs = sorted(ddf["dev"].dropna().astype(str).unique()) if "dev" in ddf.columns else []
+            devs = (
+                sorted(pd.Series(ddf["dev"]).dropna().astype(str).unique().tolist())
+                if "dev" in ddf.columns
+                else []
+            )
             sel_devs = st.multiselect("Devices", devs, default=devs[:2])
             # Common disk metrics
             disk_metrics_all = [
@@ -395,7 +400,7 @@ def main():
                 for m in disk_metrics:
                     for dev in sel_devs:
                         key = f"{m}[{dev}]"
-                        series[key] = ddf[ddf["dev"] == dev].set_index("timestamp")[m]
+                        series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
                 if series:
                     chart_df = pd.concat(series, axis=1).sort_index()
                     st.line_chart(chart_df)
@@ -416,7 +421,9 @@ def main():
             ndf = None
         if ndf is not None and not ndf.empty:
             ifaces = (
-                sorted(ndf["iface"].dropna().astype(str).unique()) if "iface" in ndf.columns else []
+                sorted(pd.Series(ndf["iface"]).dropna().astype(str).unique().tolist())
+                if "iface" in ndf.columns
+                else []
             )
             sel_ifaces = st.multiselect("Interfaces", ifaces, default=ifaces[:2])
             net_metrics_all = [
@@ -434,7 +441,7 @@ def main():
                 for m in net_metrics:
                     for iface in sel_ifaces:
                         key = f"{m}[{iface}]"
-                        series[key] = ndf[ndf["iface"] == iface].set_index("timestamp")[m]
+                        series[key] = ndf.loc[ndf["iface"] == iface].set_index("timestamp")[m]
                 if series:
                     chart_df = pd.concat(series, axis=1).sort_index()
                     st.line_chart(chart_df)
