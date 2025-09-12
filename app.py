@@ -1,8 +1,8 @@
-import os
 import json
+import os
 import subprocess
 from datetime import datetime
-from typing import Literal, Tuple, List, Dict, Optional
+from typing import Dict, List, Literal, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
@@ -245,29 +245,28 @@ def main():
     if prefer not in ("auto", "11", "12"):
         prefer = "auto"
 
-    left, right = st.columns([2, 3])
-    with left:
-        st.subheader("Input")
-        samples = []
-        if os.path.isdir("samples"):
-            samples = [os.path.join("samples", f) for f in os.listdir("samples") if f.endswith(".dat")]
-        default_path = samples[0] if samples else ""
-        selected = st.selectbox("Sample .dat file", options=["(upload)"] + samples, index=1 if samples else 0)
-        uploaded = st.file_uploader("Or upload a sar .dat file", type=["dat", "bin", "sar", "data"]) if selected == "(upload)" else None
+    # Input controls (top)
+    st.subheader("Input")
+    samples = []
+    if os.path.isdir("samples"):
+        samples = [os.path.join("samples", f) for f in os.listdir("samples") if f.endswith(".dat")]
+    selected = st.selectbox("Sample .dat file", options=["(upload)"] + samples, index=1 if samples else 0)
+    uploaded = st.file_uploader("Or upload a sar .dat file", type=["dat", "bin", "sar", "data"]) if selected == "(upload)" else None
 
-        path = None
-        if selected != "(upload)":
-            path = selected
-        elif uploaded is not None:
-            tmp_path = os.path.join("samples", "uploaded.dat")
-            with open(tmp_path, "wb") as f:
-                f.write(uploaded.getbuffer())
-            path = tmp_path
+    path: Optional[str] = None
+    if selected != "(upload)":
+        path = selected
+    elif uploaded is not None:
+        os.makedirs("samples", exist_ok=True)
+        tmp_path = os.path.join("samples", "uploaded.dat")
+        with open(tmp_path, "wb") as f:
+            f.write(uploaded.getbuffer())
+        path = tmp_path
 
-        st.caption("Set env SAR_VERSION=auto|12|11 to force format handling.")
+    st.caption("Set env SAR_VERSION=auto|12|11 to force format handling.")
 
-    with right:
-        st.subheader("Charts")
+    # Charts area
+    st.subheader("Charts")
         if not path:
             st.info("Select or upload a sar .dat file from the left.")
             return
