@@ -9,10 +9,11 @@
 - タスクランナーは mise、パッケージ管理は uv を使用。
   - `mise run setup` — 依存をインストール（`.venv` 作成、`uv sync`）。
   - `mise run run` — Streamlit を起動（`uv run streamlit run app.py`）。
+  - `mise run dev` — `run` のエイリアス。
   - `mise run sample` — sar 収集→`sadf -j/-d` で JSON/CSV 生成。
   - `mise run fmt` / `mise run lint` — ruff でフォーマット/静的解析。
-  - `mise run typecheck` — pyright で型チェック。
-- 互換目的で `make run` 等も mise にフォワードしています。
+  - `mise run typecheck` / `mise run check` — 型チェック単体 / Lint+型チェック。
+  - `mise run qa` — 変更無しフォーマット検証 + Lint + 型チェック。
 
 ## Coding Style & Naming Conventions
 - インデント4スペース、行長100。ファイル/関数は snake_case、クラスは PascalCase、定数は UPPER_CASE。
@@ -30,3 +31,4 @@
 ## Security & Configuration Tips
 - シークレットはコミット禁止（`.env.example` を共有し、実値は環境変数で）。
 - ロケール依存を避けるため `sadf -d` は `LC_ALL=C` を推奨。
+- バージョン切替: `SAR_VERSION=11` で CSV 経路を強制、未指定は自動判定。
