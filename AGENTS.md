@@ -12,6 +12,7 @@
   - `mise run dev` — `run` のエイリアス。
   - `mise run sample` — sar 収集→`sadf -j/-d` で JSON/CSV 生成。
   - `mise run fmt` / `mise run lint` — ruff でフォーマット/静的解析。
+  - `mise run lint-fix` — ruff による自動修正（UP などを自動適用）。
   - `mise run typecheck` / `mise run check` — 型チェック単体 / Lint+型チェック。
   - `mise run qa` — 変更無しフォーマット検証 + Lint + 型チェック。
 
