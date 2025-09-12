@@ -267,99 +267,99 @@ def main():
 
     # Charts area
     st.subheader("Charts")
-        if not path:
-            st.info("Select or upload a sar .dat file from the left.")
-            return
+    if not path:
+        st.info("Select or upload a sar .dat file from the left.")
+        return
 
-        tabs = st.tabs(["CPU", "Memory", "Disk", "Network"])
+    tabs = st.tabs(["CPU", "Memory", "Disk", "Network"])
 
-        # CPU Tab
-        with tabs[0]:
-            try:
-                df, fmt = load_cpu_df(path, prefer)
-                st.caption(f"Parsed as {fmt}")
-            except Exception as e:
-                st.error(f"CPU load failed: {e}")
-                df = None
-            if df is not None and not df.empty:
-                cpu_metrics = st.multiselect("Metrics", ["user", "system", "iowait", "idle"], default=["user", "system", "idle"])
-                cpu_filter = st.text_input("CPU filter (e.g., all, 0, 1, 2)", value="all")
-                wanted = [c.strip() for c in cpu_filter.split(',')] if cpu_filter else []
-                if wanted and wanted != ['']:
-                    df = df[df["cpu"].isin(wanted)]
+    # CPU Tab
+    with tabs[0]:
+        try:
+            df, fmt = load_cpu_df(path, prefer)
+            st.caption(f"Parsed as {fmt}")
+        except Exception as e:
+            st.error(f"CPU load failed: {e}")
+            df = None
+        if df is not None and not df.empty:
+            cpu_metrics = st.multiselect("Metrics", ["user", "system", "iowait", "idle"], default=["user", "system", "idle"])
+            cpu_filter = st.text_input("CPU filter (e.g., all, 0, 1, 2)", value="all")
+            wanted = [c.strip() for c in cpu_filter.split(',')] if cpu_filter else []
+            if wanted and wanted != ['']:
+                df = df[df["cpu"].isin(wanted)]
+            series = {}
+            for m in cpu_metrics:
+                for cpu in sorted(df["cpu"].unique()):
+                    key = f"{m}[{cpu}]"
+                    series[key] = df[df["cpu"] == cpu].set_index("timestamp")[m]
+            if series:
+                chart_df = pd.concat(series, axis=1).sort_index()
+                st.line_chart(chart_df)
+            st.download_button("Download CPU CSV", df.to_csv(index=False).encode("utf-8"), file_name="cpu.csv", mime="text/csv")
+
+    # Memory Tab
+    with tabs[1]:
+        try:
+            mdf, mfmt = load_mem_df(path, prefer)
+            st.caption(f"Parsed as {mfmt}")
+        except Exception as e:
+            st.error(f"Memory read failed: {e}")
+            mdf = None
+        if mdf is not None and not mdf.empty:
+            # Default metrics for memory
+            mem_metrics = st.multiselect("Metrics", [c for c in ["memused_pct", "memfree", "avail", "cached", "buffers", "commit_pct"] if c in mdf.columns], default=[mm for mm in ["memused_pct", "cached", "buffers"] if mm in mdf.columns])
+            if mem_metrics:
+                st.line_chart(mdf.set_index("timestamp")[mem_metrics])
+            st.download_button("Download Memory CSV", mdf.to_csv(index=False).encode("utf-8"), file_name="memory.csv", mime="text/csv")
+
+    # Disk Tab
+    with tabs[2]:
+        try:
+            ddf, dfmt = load_disk_df(path, prefer)
+            st.caption(f"Parsed as {dfmt}")
+        except Exception as e:
+            st.error(f"Disk read failed: {e}")
+            ddf = None
+        if ddf is not None and not ddf.empty:
+            devs = sorted(ddf["dev"].dropna().astype(str).unique()) if "dev" in ddf.columns else []
+            sel_devs = st.multiselect("Devices", devs, default=devs[:2])
+            # Common disk metrics
+            disk_metrics_all = [c for c in ["tps", "rkB_s", "wkB_s", "await", "util_pct"] if c in ddf.columns]
+            disk_metrics = st.multiselect("Metrics", disk_metrics_all, default=disk_metrics_all[:3])
+            if sel_devs and disk_metrics:
                 series = {}
-                for m in cpu_metrics:
-                    for cpu in sorted(df["cpu"].unique()):
-                        key = f"{m}[{cpu}]"
-                        series[key] = df[df["cpu"] == cpu].set_index("timestamp")[m]
+                for m in disk_metrics:
+                    for dev in sel_devs:
+                        key = f"{m}[{dev}]"
+                        series[key] = ddf[ddf["dev"] == dev].set_index("timestamp")[m]
                 if series:
                     chart_df = pd.concat(series, axis=1).sort_index()
                     st.line_chart(chart_df)
-                st.download_button("Download CPU CSV", df.to_csv(index=False).encode("utf-8"), file_name="cpu.csv", mime="text/csv")
+            st.download_button("Download Disk CSV", ddf.to_csv(index=False).encode("utf-8"), file_name="disk.csv", mime="text/csv")
 
-        # Memory Tab
-        with tabs[1]:
-            try:
-                mdf, mfmt = load_mem_df(path, prefer)
-                st.caption(f"Parsed as {mfmt}")
-            except Exception as e:
-                st.error(f"Memory read failed: {e}")
-                mdf = None
-            if mdf is not None and not mdf.empty:
-                # Default metrics for memory
-                mem_metrics = st.multiselect("Metrics", [c for c in ["memused_pct", "memfree", "avail", "cached", "buffers", "commit_pct"] if c in mdf.columns], default=[mm for mm in ["memused_pct", "cached", "buffers"] if mm in mdf.columns])
-                if mem_metrics:
-                    st.line_chart(mdf.set_index("timestamp")[mem_metrics])
-                st.download_button("Download Memory CSV", mdf.to_csv(index=False).encode("utf-8"), file_name="memory.csv", mime="text/csv")
-
-        # Disk Tab
-        with tabs[2]:
-            try:
-                ddf, dfmt = load_disk_df(path, prefer)
-                st.caption(f"Parsed as {dfmt}")
-            except Exception as e:
-                st.error(f"Disk read failed: {e}")
-                ddf = None
-            if ddf is not None and not ddf.empty:
-                devs = sorted(ddf["dev"].dropna().astype(str).unique()) if "dev" in ddf.columns else []
-                sel_devs = st.multiselect("Devices", devs, default=devs[:2])
-                # Common disk metrics
-                disk_metrics_all = [c for c in ["tps", "rkB_s", "wkB_s", "await", "util_pct"] if c in ddf.columns]
-                disk_metrics = st.multiselect("Metrics", disk_metrics_all, default=disk_metrics_all[:3])
-                if sel_devs and disk_metrics:
-                    series = {}
-                    for m in disk_metrics:
-                        for dev in sel_devs:
-                            key = f"{m}[{dev}]"
-                            series[key] = ddf[ddf["dev"] == dev].set_index("timestamp")[m]
-                    if series:
-                        chart_df = pd.concat(series, axis=1).sort_index()
-                        st.line_chart(chart_df)
-                st.download_button("Download Disk CSV", ddf.to_csv(index=False).encode("utf-8"), file_name="disk.csv", mime="text/csv")
-
-        # Network Tab
-        with tabs[3]:
-            try:
-                ndf, nfmt = load_net_df(path, prefer)
-                st.caption(f"Parsed as {nfmt}")
-            except Exception as e:
-                st.error(f"Network read failed: {e}")
-                ndf = None
-            if ndf is not None and not ndf.empty:
-                ifaces = sorted(ndf["iface"].dropna().astype(str).unique()) if "iface" in ndf.columns else []
-                sel_ifaces = st.multiselect("Interfaces", ifaces, default=ifaces[:2])
-                net_metrics_all = [c for c in ["rxkB_s", "txkB_s", "rxpck_s", "txpck_s", "ifutil_pct"] if c in ndf.columns]
-                net_metrics = st.multiselect("Metrics", net_metrics_all, default=[m for m in ["rxkB_s", "txkB_s"] if m in net_metrics_all])
-                if sel_ifaces and net_metrics:
-                    series = {}
-                    for m in net_metrics:
-                        for iface in sel_ifaces:
-                            key = f"{m}[{iface}]"
-                            series[key] = ndf[ndf["iface"] == iface].set_index("timestamp")[m]
-                    if series:
-                        chart_df = pd.concat(series, axis=1).sort_index()
-                        st.line_chart(chart_df)
-                st.download_button("Download Network CSV", ndf.to_csv(index=False).encode("utf-8"), file_name="network.csv", mime="text/csv")
+    # Network Tab
+    with tabs[3]:
+        try:
+            ndf, nfmt = load_net_df(path, prefer)
+            st.caption(f"Parsed as {nfmt}")
+        except Exception as e:
+            st.error(f"Network read failed: {e}")
+            ndf = None
+        if ndf is not None and not ndf.empty:
+            ifaces = sorted(ndf["iface"].dropna().astype(str).unique()) if "iface" in ndf.columns else []
+            sel_ifaces = st.multiselect("Interfaces", ifaces, default=ifaces[:2])
+            net_metrics_all = [c for c in ["rxkB_s", "txkB_s", "rxpck_s", "txpck_s", "ifutil_pct"] if c in ndf.columns]
+            net_metrics = st.multiselect("Metrics", net_metrics_all, default=[m for m in ["rxkB_s", "txkB_s"] if m in net_metrics_all])
+            if sel_ifaces and net_metrics:
+                series = {}
+                for m in net_metrics:
+                    for iface in sel_ifaces:
+                        key = f"{m}[{iface}]"
+                        series[key] = ndf[ndf["iface"] == iface].set_index("timestamp")[m]
+                if series:
+                    chart_df = pd.concat(series, axis=1).sort_index()
+                    st.line_chart(chart_df)
+            st.download_button("Download Network CSV", ndf.to_csv(index=False).encode("utf-8"), file_name="network.csv", mime="text/csv")
 
 
 if __name__ == "__main__":
