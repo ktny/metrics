@@ -1,15 +1,82 @@
 [tools]
-python = "3.10"
+python = "system"
 
 [tasks]
-setup = { description = "Install dependencies via uv", run = "uv sync" }
-run = { description = "Run Streamlit app", run = "uv run streamlit run app.py" }
+setup = { description = "Install dependencies via uv (fallback to venv/pip)", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv sync
+else
+  echo "[setup] uv not found; creating .venv and installing runtime/dev deps"
+  python3 -m venv .venv
+  .venv/bin/pip install -U pip
+  .venv/bin/pip install streamlit pandas ruff pyright
+fi
+'
+""" }
+run = { description = "Run Streamlit app (uv or venv)", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv run streamlit run app.py
+else
+  .venv/bin/streamlit run app.py
+fi
+'
+""" }
 dev = { description = "Run app (alias)", run = "mise run run" }
 sample = { description = "Generate sample SAR files", run = "mkdir -p samples && sar -o samples/sar_v12.dat 1 5 >/dev/null && sadf -j samples/sar_v12.dat -- -A > samples/sar_v12.json && LC_ALL=C sadf -d samples/sar_v12.dat -- -A > samples/sar_v12.csv" }
-fmt = { description = "Format with ruff", run = "uv run ruff format ." }
-lint = { description = "Lint with ruff", run = "uv run ruff check ." }
-lint-fix = { description = "Lint with ruff and apply fixes", run = "bash -lc 'if command -v uv >/dev/null; then uv run ruff check . --fix; else echo "[lint-fix] uv not found; using .venv"; .venv/bin/ruff check . --fix || true; fi'" }
-typecheck = { description = "Type-check with pyright", run = "uv run pyright" }
-check = { description = "Lint + Type-check", run = "uv run ruff check . && uv run pyright" }
-qa = { description = "Format(check) + Lint + Type-check", run = "uv run ruff format --check . && uv run ruff check . && uv run pyright" }
+fmt = { description = "Format with ruff", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv run ruff format .
+else
+  .venv/bin/ruff format .
+fi
+'
+""" }
+lint = { description = "Lint with ruff", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv run ruff check .
+else
+  .venv/bin/ruff check .
+fi
+'
+""" }
+lint-fix = { description = "Lint with ruff and apply fixes", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv run ruff check . --fix
+else
+  .venv/bin/ruff check . --fix
+fi
+'
+""" }
+typecheck = { description = "Type-check with pyright", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv run pyright
+else
+  .venv/bin/pyright
+fi
+'
+""" }
+check = { description = "Lint + Type-check", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv run ruff check . && uv run pyright
+else
+  .venv/bin/ruff check . && .venv/bin/pyright
+fi
+'
+""" }
+qa = { description = "Format(check) + Lint + Type-check", run = """
+bash -lc '
+if command -v uv >/dev/null; then
+  uv run ruff format --check . && uv run ruff check . && uv run pyright
+else
+  .venv/bin/ruff format --check . && .venv/bin/ruff check . && .venv/bin/pyright
+fi
+'
+""" }
 clean = { description = "Clean generated artifacts", run = "rm -f samples/uploaded.dat && find . -name __pycache__ -type d -exec rm -rf {} +" }

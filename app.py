@@ -9,7 +9,7 @@ import streamlit as st
 
 
 def _run(cmd: list[str]) -> tuple[int, str, str]:
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    p = subprocess.run(cmd, capture_output=True, text=True)
     return p.returncode, p.stdout, p.stderr
 
 
@@ -32,8 +32,7 @@ def convert_with_sadf(
     env.update({"LC_ALL": "C"})
     p = subprocess.run(
         ["sadf", "-d", path, "--", *sar_args],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         env=env,
     )
