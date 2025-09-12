@@ -1,0 +1,12 @@
+[tools]
+python = "3.10"
+
+[tasks]
+setup = { description = "Install dependencies via uv", run = "uv sync" }
+run = { description = "Run Streamlit app", run = "uv run streamlit run app.py" }
+sample = { description = "Generate sample SAR files", run = "mkdir -p samples && sar -o samples/sar_v12.dat 1 5 >/dev/null && sadf -j samples/sar_v12.dat -- -A > samples/sar_v12.json && LC_ALL=C sadf -d samples/sar_v12.dat -- -A > samples/sar_v12.csv" }
+fmt = { description = "Format with ruff", run = "uv run ruff format ." }
+lint = { description = "Lint with ruff", run = "uv run ruff check ." }
+typecheck = { description = "Type-check with pyright", run = "uv run pyright" }
+clean = { description = "Clean generated artifacts", run = "rm -f samples/uploaded.dat && find . -name __pycache__ -type d -exec rm -rf {} +" }
+
