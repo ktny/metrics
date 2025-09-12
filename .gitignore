@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+
+# Virtual env
+.venv/
+.python-version
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.cache/
+pip-wheel-metadata/
+
+# Editors/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Streamlit
+.streamlit/**/credentials.toml
+.streamlit/**/secrets.toml
+.streamlit/**/config.toml
+
+# App data / samples (generated)
+samples/uploaded.dat
+samples/*.json
+samples/*.csv
+samples/*.dat
+
+# Logs
+logs/
+*.log
