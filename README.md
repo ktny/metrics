@@ -34,9 +34,10 @@ A simple, browser-based viewer for Linux sar files (sysstat). Supports v12 JSON 
 - CSV parsing uses `LC_ALL=C` semantics inside the app to avoid locale pitfalls
 
 ## Development
-- Lint/format: `mise run lint`, `mise run fmt`, auto-fix: `mise run lint-fix`
-- Type-check: `mise run typecheck`, combined: `mise run qa`
-- CI: GitHub Actions runs ruff + pyright using uv + mise
+- Format/Lint: `mise run fmt`, `mise run lint`, auto-fix: `mise run fix`
+- Type-check: `mise run type`, combined: `mise run check`
+- Tests: `mise run test`
+- CI: GitHub Actions runs `mise run check` and `mise run test`
 
 ## Notes
 - Samples are git-ignored. Add your own under `samples/`.

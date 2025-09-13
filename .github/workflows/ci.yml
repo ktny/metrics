@@ -36,8 +36,8 @@ jobs:
       - name: Install dependencies
         run: mise run setup
 
-      - name: Lint / Type-check
-        run: mise run qa
+      - name: Format + Lint + Type-check
+        run: mise run check
 
       - name: Tests
         run: mise run test
