@@ -4,6 +4,7 @@
 - App entry: `app.py`（Streamlit）。将来は `src/` に分割し、`tests/` にミラー配置。
 - サンプルデータ: `samples/`（生成物は `.gitignore` 済み）。
 - 設定: `pyproject.toml`（依存・ツール設定）、`.mise.toml`（タスク）、`.gitignore`。
+ - CI: `.github/workflows/ci.yml`（ruff/pyright を uv + mise で実行）。
 
 ## Build, Test, and Development Commands
 - タスクランナーは mise、パッケージ管理は uv を使用。
@@ -34,3 +35,13 @@
 - シークレットはコミット禁止（`.env.example` を共有し、実値は環境変数で）。
 - ロケール依存を避けるため `sadf -d` は `LC_ALL=C` を推奨。
 - バージョン切替: `SAR_VERSION=11` で CSV 経路を強制、未指定は自動判定。
+
+## Architecture Overview（要点）
+- 変換: `sadf -j`（v12+ JSON）→ 失敗時 `sadf -d`（v11 互換 CSV）に自動フォールバック。
+- タブ別 sar 引数: CPU `-u -P ALL` / Memory `-r` / Disk `-d` / Net `-n DEV`。
+- 正規化: 列名や単位を正規化（例: `%util`→`util_pct`, `rxkB/s`→`rxkB_s`）。
+- キャッシュ: `@st.cache_data` で `sadf` 実行結果をキャッシュ。
+
+## Local Samples
+- ダミーデータ生成: `mise run sample`
+- 生成物: `samples/sar_v12.dat` と `sar_v12.json` / `sar_v12.csv`
