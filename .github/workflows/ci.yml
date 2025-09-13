@@ -20,7 +20,7 @@ jobs:
       - name: Set up mise and install tools
         uses: jdx/mise-action@v2
         with:
-          version: 'latest'
+          version: 'v2025.1.17'
           install: true
 
       - name: Install dependencies (frozen)
