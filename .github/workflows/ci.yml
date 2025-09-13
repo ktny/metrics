@@ -17,15 +17,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install mise
-        run: |
-          curl -fsSL https://mise.jdx.dev/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Set up mise and install tools
+        uses: jdx/mise-action@v2
+        with:
+          version: 'latest'
+          install: true
 
-      - name: Install tools via mise
-        run: mise install
-
-      - name: Install dependencies
+      - name: Install dependencies (frozen)
         run: mise run setup
 
       - name: Format + Lint + Type-check
