@@ -9,15 +9,15 @@ A simple, browser-based viewer for Linux sar files (sysstat). Supports v12 JSON 
 - Fast local conversion via `sadf`; cached in app
 
 ## Requirements
-- Python 3.10+
-- mise (task runner) and uv (Python package manager)
+- uv 0.8.17 (package manager) and mise (task runner)
+- Python is pinned by uv to 3.10 (managed by `pyproject.toml`)
 - sysstat (`sar`, `sadf`) for generating sample data
 
 ## Quick Start
-- Install tools: `mise install` (installs uv from `.mise.toml`)
-- Sync deps: `mise run setup`
+- Install tools: `mise install` (installs uv as declared in `.mise.toml`)
+- Sync deps: `mise run setup` (runs `uv sync --frozen` with Python 3.10)
 - Generate samples: `mise run sample`
-- Run app: `mise run run` and open http://localhost:8501
+- Run app: `mise run dev` and open http://localhost:8501
 
 ## Usage
 - Input at the top: choose `samples/sar_v12.dat` or upload your own `.dat` file
@@ -34,9 +34,10 @@ A simple, browser-based viewer for Linux sar files (sysstat). Supports v12 JSON 
 - CSV parsing uses `LC_ALL=C` semantics inside the app to avoid locale pitfalls
 
 ## Development
-- Lint/format: `mise run lint`, `mise run fmt`, auto-fix: `mise run lint-fix`
-- Type-check: `mise run typecheck`, combined: `mise run qa`
-- CI: GitHub Actions runs ruff + pyright using uv + mise
+- Format/Lint: `mise run fmt`, `mise run lint`, auto-fix: `mise run fix`
+- Type-check: `mise run type`, combined: `mise run check`
+- Tests: `mise run test`
+- CI: GitHub Actions runs `mise run check` and `mise run test`
 
 ## Notes
 - Samples are git-ignored. Add your own under `samples/`.
