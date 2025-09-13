@@ -9,13 +9,13 @@ A simple, browser-based viewer for Linux sar files (sysstat). Supports v12 JSON 
 - Fast local conversion via `sadf`; cached in app
 
 ## Requirements
-- Python 3.10+
-- mise (task runner) and uv (Python package manager)
+- uv (package manager) and mise (task runner)
+- Python is pinned by uv to 3.10 (managed by `pyproject.toml`)
 - sysstat (`sar`, `sadf`) for generating sample data
 
 ## Quick Start
-- Install tools: `mise install` (installs uv from `.mise.toml`)
-- Sync deps: `mise run setup`
+- Install tools: `mise install` (installs uv as declared in `.mise.toml`)
+- Sync deps: `mise run setup` (uv will use Python 3.10)
 - Generate samples: `mise run sample`
 - Run app: `mise run run` and open http://localhost:8501
 

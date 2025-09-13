@@ -3,11 +3,11 @@
 ## Project Structure & Module Organization
 - App entry: `app.py`（Streamlit）。将来は `src/` に分割し、`tests/` にミラー配置。
 - サンプルデータ: `samples/`（生成物は `.gitignore` 済み）。
-- 設定: `pyproject.toml`（依存・ツール設定）、`.mise.toml`（タスク）、`.gitignore`。
+- 設定: `pyproject.toml`（依存・ツール設定。uv で Python 3.10 を固定）、`.mise.toml`（タスク）、`.gitignore`。
  - CI: `.github/workflows/ci.yml`（ruff/pyright を uv + mise で実行）。
 
 ## Build, Test, and Development Commands
-- タスクランナーは mise、パッケージ管理は uv を使用。
+- タスクランナーは mise、パッケージ管理は uv を使用（uv が Python 3.10 を管理）。
   - `mise install` — `.mise.toml` の [tools]（uv など）をインストール。
   - `mise run setup` — 依存同期＋pre-commit フック導入（`uv sync` + `pre-commit install`）。
   - `mise run run` — Streamlit 起動。
