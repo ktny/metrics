@@ -52,6 +52,3 @@ def test_parse_cpu_csv_basic():
     ).strip()
     df = parse_cpu_csv(csv_text)
     assert list(df.columns) == ["timestamp", "cpu", "user", "system", "iowait", "idle"]
-
-
-    
