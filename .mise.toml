@@ -14,5 +14,6 @@ typecheck = { description = "Type-check with pyright", run = "uv run pyright" }
 check = { description = "Lint + Type-check", run = "uv run ruff check . && uv run pyright" }
 qa = { description = "Format(check) + Lint + Type-check", run = "uv run ruff format --check . && uv run ruff check . && uv run pyright" }
 clean = { description = "Clean generated artifacts", run = "rm -f samples/uploaded.dat && find . -name __pycache__ -type d -exec rm -rf {} +" }
+test = { description = "Run tests", run = "uv run pytest -q" }
 precommit:install = { description = "Install git hook", run = "uv run pre-commit install --install-hooks" }
 precommit:run = { description = "Run pre-commit on all files", run = "uv run pre-commit run --all-files" }

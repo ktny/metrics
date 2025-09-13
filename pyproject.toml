@@ -16,6 +16,12 @@ dev-dependencies = [
   "ruff>=0.5.5",
   "pyright>=1.1.377",
   "pre-commit>=3.7.1",
+  "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "tests",
 ]
 
 [tool.ruff]

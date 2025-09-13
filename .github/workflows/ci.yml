@@ -39,3 +39,5 @@ jobs:
       - name: Lint / Type-check
         run: mise run qa
 
+      - name: Tests
+        run: mise run test
