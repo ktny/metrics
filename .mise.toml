@@ -3,7 +3,6 @@ python = "system"
 uv = "latest"
 
 [tasks]
-install:uv = { description = "Install uv via mise tools", run = "mise install uv" }
 setup = { description = "Install dependencies via uv", run = "uv sync" }
 run = { description = "Run Streamlit app", run = "uv run streamlit run app.py" }
 dev = { description = "Run app (alias)", run = "mise run run" }

@@ -8,7 +8,6 @@
 ## Build, Test, and Development Commands
 - タスクランナーは mise、パッケージ管理は uv を使用。
   - `mise install` — `.mise.toml` の [tools]（uv など）をインストール。
-  - `mise run install:uv` — uv だけを個別インストール（`mise install uv` のラッパー）。
   - `mise run setup` — 依存をインストール（`uv sync`）。
   - `mise run run` — Streamlit を起動（`uv run streamlit run app.py`）。
   - `mise run dev` — `run` のエイリアス。
