@@ -3,7 +3,7 @@ python = "system"
 uv = "latest"
 
 [tasks]
-setup = { description = "Install dependencies via uv", run = "uv sync" }
+setup = { description = "Install deps and git hooks (uv sync + pre-commit install)", run = "uv sync && uv run pre-commit install --install-hooks" }
 run = { description = "Run Streamlit app", run = "uv run streamlit run app.py" }
 dev = { description = "Run app (alias)", run = "mise run run" }
 sample = { description = "Generate sample SAR files", run = "mkdir -p samples && sar -o samples/sar_v12.dat 1 5 >/dev/null && sadf -j samples/sar_v12.dat -- -A > samples/sar_v12.json && LC_ALL=C sadf -d samples/sar_v12.dat -- -A > samples/sar_v12.csv" }
@@ -15,5 +15,4 @@ check = { description = "Lint + Type-check", run = "uv run ruff check . && uv ru
 qa = { description = "Format(check) + Lint + Type-check", run = "uv run ruff format --check . && uv run ruff check . && uv run pyright" }
 clean = { description = "Clean generated artifacts", run = "rm -f samples/uploaded.dat && find . -name __pycache__ -type d -exec rm -rf {} +" }
 test = { description = "Run tests", run = "uv run pytest -q" }
-precommit:install = { description = "Install git hook", run = "uv run pre-commit install --install-hooks" }
-precommit:run = { description = "Run pre-commit on all files", run = "uv run pre-commit run --all-files" }
+precommit = { description = "Run pre-commit on all files", run = "uv run pre-commit run --all-files" }
