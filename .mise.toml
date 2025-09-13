@@ -1,5 +1,5 @@
 [tools]
-uv = "latest"
+uv = "0.8.17"
 
 [tasks]
 setup = { description = "Deps(frozen) + git hooks", run = "uv sync --frozen && uv run pre-commit install --install-hooks" }

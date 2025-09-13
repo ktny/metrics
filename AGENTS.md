@@ -7,7 +7,7 @@
  - CI: `.github/workflows/ci.yml`（ruff/pyright を uv + mise で実行）。
 
 ## Build, Test, and Development Commands
-- タスクランナーは mise、パッケージ管理は uv を使用（uv が Python 3.10 を管理）。
+- タスクランナーは mise、パッケージ管理は uv（0.8.17 固定）を使用（uv が Python 3.10 を管理）。
   - `mise install` — `.mise.toml` の [tools]（uv など）をインストール。
   - `mise run setup` — 依存同期（`uv sync --frozen`）＋ pre-commit フック導入。
   - `mise run dev` — Streamlit 起動。
