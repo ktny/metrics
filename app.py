@@ -390,20 +390,49 @@ def main():
                 else []
             )
             sel_devs = st.multiselect("Devices", devs, default=devs[:2])
-            # Common disk metrics
-            disk_metrics_all = [
-                c for c in ["tps", "rkB_s", "wkB_s", "await", "util_pct"] if c in ddf.columns
-            ]
-            disk_metrics = st.multiselect("Metrics", disk_metrics_all, default=disk_metrics_all[:3])
-            if sel_devs and disk_metrics:
-                series = {}
-                for m in disk_metrics:
-                    for dev in sel_devs:
-                        key = f"{m}[{dev}]"
-                        series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
-                if series:
-                    chart_df = pd.concat(series, axis=1).sort_index()
-                    st.line_chart(chart_df)
+
+            # Split into sub-tabs by unit to avoid mixing scales
+            disk_tabs = st.tabs(["IOPS/Throughput", "Latency", "Utilization"])
+
+            # IOPS/Throughput (tps, rkB_s, wkB_s)
+            with disk_tabs[0]:
+                g1 = [c for c in ["tps", "rkB_s", "wkB_s"] if c in ddf.columns]
+                sel_g1 = st.multiselect("Metrics", g1, default=g1)
+                if sel_devs and sel_g1:
+                    series = {}
+                    for m in sel_g1:
+                        for dev in sel_devs:
+                            key = f"{m}[{dev}]"
+                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
+                    if series:
+                        st.line_chart(pd.concat(series, axis=1).sort_index())
+
+            # Latency (await in ms)
+            with disk_tabs[1]:
+                g2 = [c for c in ["await"] if c in ddf.columns]
+                sel_g2 = st.multiselect("Metrics", g2, default=g2)
+                if sel_devs and sel_g2:
+                    series = {}
+                    for m in sel_g2:
+                        for dev in sel_devs:
+                            key = f"{m}[{dev}]"
+                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
+                    if series:
+                        st.line_chart(pd.concat(series, axis=1).sort_index())
+
+            # Utilization (% of time device was busy)
+            with disk_tabs[2]:
+                g3 = [c for c in ["util_pct"] if c in ddf.columns]
+                sel_g3 = st.multiselect("Metrics", g3, default=g3)
+                if sel_devs and sel_g3:
+                    series = {}
+                    for m in sel_g3:
+                        for dev in sel_devs:
+                            key = f"{m}[{dev}]"
+                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
+                    if series:
+                        st.line_chart(pd.concat(series, axis=1).sort_index())
+
             st.download_button(
                 "Download Disk CSV",
                 ddf.to_csv(index=False).encode("utf-8"),
