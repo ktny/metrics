@@ -241,6 +241,54 @@ def parse_net_csv(text: str) -> pd.DataFrame:
     return df
 
 
+def parse_fs_json(text: str) -> pd.DataFrame:
+    doc = json.loads(text)
+    host = doc["sysstat"]["hosts"][0]
+    rows: list[dict] = []
+    for stat in host.get("statistics", []):
+        ts = stat.get("timestamp", {})
+        dt = datetime.strptime(f"{ts.get('date')} {ts.get('time')} UTC", "%Y-%m-%d %H:%M:%S UTC")
+        for fs in stat.get("filesystems", []) or []:
+            row: dict = {"timestamp": dt, "filesystem": fs.get("filesystem")}
+            for k, v in fs.items():
+                if k == "filesystem":
+                    continue
+                key = (
+                    k.replace("MBfs", "mb_")
+                    .replace("%fsused", "fsused_pct")
+                    .replace("%ufsused", "ufsused_pct")
+                    .replace("%Iused", "inodes_used_pct")
+                    .replace("Iused", "inodes_used")
+                    .replace("Ifree", "inodes_free")
+                )
+                row[key] = v
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def parse_fs_csv(text: str) -> pd.DataFrame:
+    from io import StringIO
+
+    df = pd.read_csv(StringIO(text), sep=";", comment="#")
+    if "timestamp" in df.columns:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, errors="coerce").dt.tz_convert(
+            None
+        )
+    df = df.rename(
+        columns={
+            "FILESYSTEM": "filesystem",
+            "MBfsfree": "mb_free",
+            "MBfsused": "mb_used",
+            "%fsused": "fsused_pct",
+            "%ufsused": "ufsused_pct",
+            "Ifree": "inodes_free",
+            "Iused": "inodes_used",
+            "%Iused": "inodes_used_pct",
+        }
+    )
+    return df
+
+
 def load_cpu_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
     fmt, text = convert_with_sadf(path, ("-u", "-P", "ALL"), prefer)
     if fmt == "json":
@@ -271,6 +319,14 @@ def load_net_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.Data
         return parse_net_json(text), "json"
     else:
         return parse_net_csv(text), "csv"
+
+
+def load_fs_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
+    fmt, text = convert_with_sadf(path, ("-F",), prefer)
+    if fmt == "json":
+        return parse_fs_json(text), "json"
+    else:
+        return parse_fs_csv(text), "csv"
 
 
 def main():
@@ -390,20 +446,91 @@ def main():
                 else []
             )
             sel_devs = st.multiselect("Devices", devs, default=devs[:2])
-            # Common disk metrics
-            disk_metrics_all = [
-                c for c in ["tps", "rkB_s", "wkB_s", "await", "util_pct"] if c in ddf.columns
-            ]
-            disk_metrics = st.multiselect("Metrics", disk_metrics_all, default=disk_metrics_all[:3])
-            if sel_devs and disk_metrics:
-                series = {}
-                for m in disk_metrics:
-                    for dev in sel_devs:
-                        key = f"{m}[{dev}]"
-                        series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
-                if series:
-                    chart_df = pd.concat(series, axis=1).sort_index()
-                    st.line_chart(chart_df)
+
+            # Split into sub-tabs by unit to avoid mixing scales
+            disk_tabs = st.tabs(["IOPS/Throughput", "Latency", "Utilization", "Capacity"])
+
+            # IOPS/Throughput (tps, rkB_s, wkB_s)
+            with disk_tabs[0]:
+                g1 = [c for c in ["tps", "rkB_s", "wkB_s"] if c in ddf.columns]
+                sel_g1 = st.multiselect("Metrics", g1, default=g1)
+                if sel_devs and sel_g1:
+                    series = {}
+                    for m in sel_g1:
+                        for dev in sel_devs:
+                            key = f"{m}[{dev}]"
+                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
+                    if series:
+                        st.line_chart(pd.concat(series, axis=1).sort_index())
+
+            # Latency (await in ms)
+            with disk_tabs[1]:
+                g2 = [c for c in ["await"] if c in ddf.columns]
+                sel_g2 = st.multiselect("Metrics", g2, default=g2)
+                if sel_devs and sel_g2:
+                    series = {}
+                    for m in sel_g2:
+                        for dev in sel_devs:
+                            key = f"{m}[{dev}]"
+                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
+                    if series:
+                        st.line_chart(pd.concat(series, axis=1).sort_index())
+
+            # Utilization (% of time device was busy)
+            with disk_tabs[2]:
+                g3 = [c for c in ["util_pct"] if c in ddf.columns]
+                sel_g3 = st.multiselect("Metrics", g3, default=g3)
+                if sel_devs and sel_g3:
+                    series = {}
+                    for m in sel_g3:
+                        for dev in sel_devs:
+                            key = f"{m}[{dev}]"
+                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
+                    if series:
+                        st.line_chart(pd.concat(series, axis=1).sort_index())
+
+            # Capacity (filesystem-free/used, percent used)
+            with disk_tabs[3]:
+                try:
+                    fsdf, fsfmt = load_fs_df(path, prefer)
+                    st.caption(f"Parsed FS as {fsfmt}")
+                except Exception as e:
+                    st.error(f"Filesystem read failed: {e}")
+                    fsdf = None
+                if fsdf is not None and not fsdf.empty:
+                    filesystems = (
+                        sorted(pd.Series(fsdf["filesystem"]).dropna().astype(str).unique().tolist())
+                        if "filesystem" in fsdf.columns
+                        else []
+                    )
+                    sel_fs = st.multiselect("Filesystems", filesystems, default=filesystems[:2])
+                    cap_metrics_all = [
+                        c
+                        for c in [
+                            "mb_free",
+                            "mb_used",
+                            "fsused_pct",
+                            "ufsused_pct",
+                            "inodes_used_pct",
+                        ]
+                        if c in fsdf.columns
+                    ]
+                    sel_cap = st.multiselect(
+                        "Metrics",
+                        cap_metrics_all,
+                        default=[m for m in ["mb_free", "fsused_pct"] if m in cap_metrics_all],
+                    )
+                    if sel_fs and sel_cap:
+                        series = {}
+                        for m in sel_cap:
+                            for fs in sel_fs:
+                                key = f"{m}[{fs}]"
+                                series[key] = fsdf.loc[fsdf["filesystem"] == fs].set_index(
+                                    "timestamp"
+                                )[m]
+                        if series:
+                            st.line_chart(pd.concat(series, axis=1).sort_index())
+
             st.download_button(
                 "Download Disk CSV",
                 ddf.to_csv(index=False).encode("utf-8"),
