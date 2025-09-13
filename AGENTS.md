@@ -7,7 +7,8 @@
 
 ## Build, Test, and Development Commands
 - タスクランナーは mise、パッケージ管理は uv を使用。
-  - `mise run setup` — 依存をインストール（`.venv` 作成、`uv sync`）。
+  - `mise run install:uv` — uv をローカルにインストール（`~/.local/bin`）。
+  - `mise run setup` — 依存をインストール（`uv sync`）。
   - `mise run run` — Streamlit を起動（`uv run streamlit run app.py`）。
   - `mise run dev` — `run` のエイリアス。
   - `mise run sample` — sar 収集→`sadf -j/-d` で JSON/CSV 生成。
