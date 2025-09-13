@@ -4,9 +4,9 @@ from pathlib import Path
 from textwrap import dedent
 
 # Ensure the repository root is importable so we can import app.py directly
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from app import parse_cpu_csv, parse_cpu_json  # noqa: E402
+from app.parsers.cpu import parse_cpu_csv, parse_cpu_json  # noqa: E402
 
 
 def test_parse_cpu_json_basic():
