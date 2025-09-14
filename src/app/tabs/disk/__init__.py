@@ -49,10 +49,10 @@ def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
 
     tabs = st.tabs(["IOPS/Throughput", "Latency", "Utilization", "Capacity"])
 
-    from .throughput import render as render_thr
-    from .latency import render as render_lat
-    from .utilization import render as render_utl
     from .capacity import render as render_cap
+    from .latency import render as render_lat
+    from .throughput import render as render_thr
+    from .utilization import render as render_utl
 
     with tabs[0]:
         render_thr(ddf, sel_devs)
