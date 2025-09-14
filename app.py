@@ -1,4 +1,5 @@
 import json
+import re
 import os
 import subprocess
 from datetime import datetime
@@ -342,15 +343,24 @@ def main():
             if not os.path.isfile(path):
                 continue
             try:
+                # Prefer filename pattern saYYYYMMDD if present
+                m = re.match(r"^sa(\d{8})$", name)
+                if m:
+                    ymd = m.group(1)
+                    date_str = f"{ymd[0:4]}-{ymd[4:6]}-{ymd[6:8]}"
+                    items.append((date_str, path))
+                    continue
+
+                # Otherwise try sadf header (JSON) to read file-date
                 fmt, text = convert_with_sadf_cached(path, ("-u",), "auto")
-                doc = json.loads(text) if fmt == "json" else None
-                if doc:
+                if fmt == "json":
+                    doc = json.loads(text)
                     host = doc.get("sysstat", {}).get("hosts", [{}])[0]
                     file_date = host.get("file-date")
                     if file_date:
                         items.append((file_date, path))
                         continue
-                # Fallback to filename
+                # Fallback to raw filename
                 items.append((name, path))
             except Exception:
                 continue
