@@ -41,4 +41,3 @@ def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
             file_name="memory.csv",
             mime="text/csv",
         )
-

@@ -36,7 +36,9 @@ def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
             c for c in ["rxkB_s", "txkB_s", "rxpck_s", "txpck_s", "ifutil_pct"] if c in ndf.columns
         ]
         net_metrics = st.multiselect(
-            "Metrics", net_metrics_all, default=[m for m in ["rxkB_s", "txkB_s"] if m in net_metrics_all]
+            "Metrics",
+            net_metrics_all,
+            default=[m for m in ["rxkB_s", "txkB_s"] if m in net_metrics_all],
         )
         if sel_ifaces and net_metrics:
             series: dict[str, pd.Series] = {}
@@ -53,4 +55,3 @@ def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
             file_name="network.csv",
             mime="text/csv",
         )
-

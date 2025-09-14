@@ -39,7 +39,9 @@ def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
         return
 
     devs = (
-        sorted(pd.Series(ddf.get("dev", pd.Series(dtype=str))).dropna().astype(str).unique().tolist())
+        sorted(
+            pd.Series(ddf.get("dev", pd.Series(dtype=str))).dropna().astype(str).unique().tolist()
+        )
         if "dev" in ddf.columns
         else []
     )
@@ -76,4 +78,3 @@ def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
         file_name="disk.csv",
         mime="text/csv",
     )
-

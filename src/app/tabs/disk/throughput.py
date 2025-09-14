@@ -16,4 +16,3 @@ def render(ddf: pd.DataFrame, sel_devs: list[str]) -> None:
             series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
     if series:
         st.line_chart(pd.concat(series, axis=1).sort_index())
-

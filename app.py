@@ -361,16 +361,19 @@ def main():
     # Memory Tab
     with tabs[1]:
         from src.app.tabs import memory as memory_tab
+
         memory_tab.render(path, prefer)
 
     # Disk Tab
     with tabs[2]:
         from src.app.tabs import disk as disk_tab
+
         disk_tab.render(path, prefer)
 
     # Network Tab
     with tabs[3]:
         from src.app.tabs import network as network_tab
+
         network_tab.render(path, prefer)
 
 

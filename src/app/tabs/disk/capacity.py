@@ -6,7 +6,13 @@ import streamlit as st
 
 def render(fsdf: pd.DataFrame) -> None:
     filesystems = (
-        sorted(pd.Series(fsdf.get("filesystem", pd.Series(dtype=str))).dropna().astype(str).unique().tolist())
+        sorted(
+            pd.Series(fsdf.get("filesystem", pd.Series(dtype=str)))
+            .dropna()
+            .astype(str)
+            .unique()
+            .tolist()
+        )
         if "filesystem" in fsdf.columns
         else []
     )
@@ -29,4 +35,3 @@ def render(fsdf: pd.DataFrame) -> None:
                 series[key] = fsdf.loc[fsdf["filesystem"] == fs].set_index("timestamp")[m]
         if series:
             st.line_chart(pd.concat(series, axis=1).sort_index())
-
