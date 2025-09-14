@@ -320,27 +320,51 @@ def main():
 
     # Input controls (top)
     st.subheader("Input")
-    samples = []
-    if os.path.isdir("samples"):
-        samples = [os.path.join("samples", f) for f in os.listdir("samples") if f.endswith(".dat")]
-    selected = st.selectbox(
-        "Sample .dat file", options=["(upload)"] + samples, index=1 if samples else 0
-    )
-    uploaded = (
-        st.file_uploader("Or upload a sar .dat file", type=["dat", "bin", "sar", "data"])
-        if selected == "(upload)"
-        else None
-    )
+    logs_root = "logs"
+    dirs = [
+        d
+        for d in sorted(os.listdir(logs_root))
+        if os.path.isdir(os.path.join(logs_root, d)) and not d.startswith(".")
+    ] if os.path.isdir(logs_root) else []
 
-    path: str | None = None
-    if selected != "(upload)":
-        path = selected
-    elif uploaded is not None:
-        os.makedirs("samples", exist_ok=True)
-        tmp_path = os.path.join("samples", "uploaded.dat")
-        with open(tmp_path, "wb") as f:
-            f.write(uploaded.getbuffer())
-        path = tmp_path
+    if not dirs:
+        st.info("Place SAR files under logs/<dir>/ (e.g., logs/dir1/saXX)")
+        return
+
+    sel_dir = st.selectbox("Logs directory", options=dirs, index=0)
+
+    @st.cache_data(show_spinner=False)
+    def index_sar_files(dir_path: str) -> list[tuple[str, str]]:
+        # Return list of (date_str, path) by reading sadf header JSON per file
+        items: list[tuple[str, str]] = []
+        for name in sorted(os.listdir(dir_path)):
+            path = os.path.join(dir_path, name)
+            if not os.path.isfile(path):
+                continue
+            try:
+                fmt, text = convert_with_sadf_cached(path, ("-u",), "auto")
+                doc = json.loads(text) if fmt == "json" else None
+                if doc:
+                    host = doc.get("sysstat", {}).get("hosts", [{}])[0]
+                    file_date = host.get("file-date")
+                    if file_date:
+                        items.append((file_date, path))
+                        continue
+                # Fallback to filename
+                items.append((name, path))
+            except Exception:
+                continue
+        return items
+
+    dir_path = os.path.join(logs_root, sel_dir)
+    indexed = index_sar_files(dir_path)
+    dates = sorted({d for d, _ in indexed})
+    if not dates:
+        st.warning("No SAR files found in selected directory.")
+        return
+    sel_date = st.selectbox("Date", options=dates, index=len(dates) - 1)
+    # pick first file matching date (or could support multiple)
+    path = next((p for d, p in indexed if d == sel_date), None)
 
     st.caption("Set env SAR_VERSION=auto|12|11 to force format handling.")
 
