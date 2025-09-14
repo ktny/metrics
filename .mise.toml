@@ -11,5 +11,5 @@ fix = { description = "Apply lint fixes", run = "uv run ruff check . --fix" }
 type = { description = "Type-check", run = "uv run pyright" }
 check = { description = "Format(check)+Lint+Type", run = "uv run ruff format --check . && uv run ruff check . && uv run pyright" }
 test = { description = "Run tests", run = "uv run pytest -q" }
-clean = { description = "Clean artifacts", run = "rm -f samples/uploaded.dat && find . -name __pycache__ -type d -exec rm -rf {} +" }
+clean = { description = "Clean artifacts (logs + caches)", run = "bash -lc 'rm -rf logs/* 2>/dev/null || true; find . -name __pycache__ -type d -exec rm -rf {} +'" }
 precommit = { description = "Run pre-commit all", run = "uv run pre-commit run --all-files" }
