@@ -303,7 +303,7 @@ def load_net_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.Data
 
 
 def load_fs_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-F",), prefer)
+    fmt, text = convert_with_sadf_cached(path, ("-F",), prefer)
     if fmt == "json":
         return parse_fs_json(text), "json"
     else:
@@ -354,35 +354,9 @@ def main():
 
     # CPU Tab
     with tabs[0]:
-        try:
-            df, fmt = load_cpu_df(path, prefer)
-            st.caption(f"Parsed as {fmt}")
-        except Exception as e:
-            st.error(f"CPU load failed: {e}")
-            df = None
-        if df is not None and not df.empty:
-            cpu_metrics = st.multiselect(
-                "Metrics", ["user", "system", "iowait", "idle"], default=["user", "system", "idle"]
-            )
-            cpu_filter = st.text_input("CPU filter (e.g., all, 0, 1, 2)", value="all")
-            wanted = [c.strip() for c in cpu_filter.split(",")] if cpu_filter else []
-            if wanted and wanted != [""]:
-                df = df[df["cpu"].isin(wanted)]
-            series = {}
-            cpus = sorted(pd.Series(df["cpu"]).astype(str).unique().tolist())
-            for m in cpu_metrics:
-                for cpu in cpus:
-                    key = f"{m}[{cpu}]"
-                    series[key] = df.loc[df["cpu"] == cpu].set_index("timestamp")[m]
-            if series:
-                chart_df = pd.concat(series, axis=1).sort_index()
-                st.line_chart(chart_df)
-            st.download_button(
-                "Download CPU CSV",
-                df.to_csv(index=False).encode("utf-8"),
-                file_name="cpu.csv",
-                mime="text/csv",
-            )
+        from src.app.tabs import cpu as cpu_tab
+
+        cpu_tab.render(path, prefer)
 
     # Memory Tab
     with tabs[1]:
