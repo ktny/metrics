@@ -360,31 +360,8 @@ def main():
 
     # Memory Tab
     with tabs[1]:
-        try:
-            mdf, mfmt = load_mem_df(path, prefer)
-            st.caption(f"Parsed as {mfmt}")
-        except Exception as e:
-            st.error(f"Memory read failed: {e}")
-            mdf = None
-        if mdf is not None and not mdf.empty:
-            # Default metrics for memory
-            mem_metrics = st.multiselect(
-                "Metrics",
-                [
-                    c
-                    for c in ["memused_pct", "memfree", "avail", "cached", "buffers", "commit_pct"]
-                    if c in mdf.columns
-                ],
-                default=[mm for mm in ["memused_pct", "cached", "buffers"] if mm in mdf.columns],
-            )
-            if mem_metrics:
-                st.line_chart(mdf.set_index("timestamp")[mem_metrics])
-            st.download_button(
-                "Download Memory CSV",
-                mdf.to_csv(index=False).encode("utf-8"),
-                file_name="memory.csv",
-                mime="text/csv",
-            )
+        from src.app.tabs import memory as memory_tab
+        memory_tab.render(path, prefer)
 
     # Disk Tab
     with tabs[2]:
