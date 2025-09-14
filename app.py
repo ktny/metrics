@@ -7,6 +7,8 @@ from typing import Literal
 import pandas as pd
 import streamlit as st
 
+from src.app.services.sadf import convert_with_sadf as _svc_convert_with_sadf
+
 
 def _run(cmd: list[str]) -> tuple[int, str, str]:
     p = subprocess.run(cmd, capture_output=True, text=True)
@@ -14,31 +16,10 @@ def _run(cmd: list[str]) -> tuple[int, str, str]:
 
 
 @st.cache_data(show_spinner=False)
-def convert_with_sadf(
+def convert_with_sadf_cached(
     path: str, sar_args: tuple[str, ...], prefer: Literal["auto", "12", "11"] = "auto"
 ) -> tuple[Literal["json", "csv"], str]:
-    """Convert a sar binary file to text using sadf.
-    - sar_args: e.g., ("-u", "-P", "ALL") or ("-r",) or ("-d",) or ("-n", "DEV")
-    Returns (format, text).
-    """
-    if prefer in ("auto", "12"):
-        rc, out, err = _run(["sadf", "-j", path, "--", *sar_args])
-        if rc == 0 and out.strip():
-            return "json", out
-        if prefer == "12":
-            raise RuntimeError(f"sadf -j failed: {err}")
-    # Fallback to CSV-like
-    env = os.environ.copy()
-    env.update({"LC_ALL": "C"})
-    p = subprocess.run(
-        ["sadf", "-d", path, "--", *sar_args],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    if p.returncode != 0:
-        raise RuntimeError(f"sadf -d failed: {p.stderr}")
-    return "csv", p.stdout
+    return _svc_convert_with_sadf(path, sar_args, prefer)
 
 
 def parse_cpu_json(text: str) -> pd.DataFrame:
@@ -290,7 +271,7 @@ def parse_fs_csv(text: str) -> pd.DataFrame:
 
 
 def load_cpu_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-u", "-P", "ALL"), prefer)
+    fmt, text = convert_with_sadf_cached(path, ("-u", "-P", "ALL"), prefer)
     if fmt == "json":
         return parse_cpu_json(text), "json"
     else:
@@ -298,7 +279,7 @@ def load_cpu_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.Data
 
 
 def load_mem_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-r",), prefer)
+    fmt, text = convert_with_sadf_cached(path, ("-r",), prefer)
     if fmt == "json":
         return parse_mem_json(text), "json"
     else:
@@ -306,7 +287,7 @@ def load_mem_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.Data
 
 
 def load_disk_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-d",), prefer)
+    fmt, text = convert_with_sadf_cached(path, ("-d",), prefer)
     if fmt == "json":
         return parse_disk_json(text), "json"
     else:
@@ -314,7 +295,7 @@ def load_disk_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.Dat
 
 
 def load_net_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-n", "DEV"), prefer)
+    fmt, text = convert_with_sadf_cached(path, ("-n", "DEV"), prefer)
     if fmt == "json":
         return parse_net_json(text), "json"
     else:
@@ -322,7 +303,7 @@ def load_net_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.Data
 
 
 def load_fs_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-F",), prefer)
+    fmt, text = convert_with_sadf_cached(path, ("-F",), prefer)
     if fmt == "json":
         return parse_fs_json(text), "json"
     else:
@@ -373,211 +354,27 @@ def main():
 
     # CPU Tab
     with tabs[0]:
-        try:
-            df, fmt = load_cpu_df(path, prefer)
-            st.caption(f"Parsed as {fmt}")
-        except Exception as e:
-            st.error(f"CPU load failed: {e}")
-            df = None
-        if df is not None and not df.empty:
-            cpu_metrics = st.multiselect(
-                "Metrics", ["user", "system", "iowait", "idle"], default=["user", "system", "idle"]
-            )
-            cpu_filter = st.text_input("CPU filter (e.g., all, 0, 1, 2)", value="all")
-            wanted = [c.strip() for c in cpu_filter.split(",")] if cpu_filter else []
-            if wanted and wanted != [""]:
-                df = df[df["cpu"].isin(wanted)]
-            series = {}
-            cpus = sorted(pd.Series(df["cpu"]).astype(str).unique().tolist())
-            for m in cpu_metrics:
-                for cpu in cpus:
-                    key = f"{m}[{cpu}]"
-                    series[key] = df.loc[df["cpu"] == cpu].set_index("timestamp")[m]
-            if series:
-                chart_df = pd.concat(series, axis=1).sort_index()
-                st.line_chart(chart_df)
-            st.download_button(
-                "Download CPU CSV",
-                df.to_csv(index=False).encode("utf-8"),
-                file_name="cpu.csv",
-                mime="text/csv",
-            )
+        from src.app.tabs import cpu as cpu_tab
+
+        cpu_tab.render(path, prefer)
 
     # Memory Tab
     with tabs[1]:
-        try:
-            mdf, mfmt = load_mem_df(path, prefer)
-            st.caption(f"Parsed as {mfmt}")
-        except Exception as e:
-            st.error(f"Memory read failed: {e}")
-            mdf = None
-        if mdf is not None and not mdf.empty:
-            # Default metrics for memory
-            mem_metrics = st.multiselect(
-                "Metrics",
-                [
-                    c
-                    for c in ["memused_pct", "memfree", "avail", "cached", "buffers", "commit_pct"]
-                    if c in mdf.columns
-                ],
-                default=[mm for mm in ["memused_pct", "cached", "buffers"] if mm in mdf.columns],
-            )
-            if mem_metrics:
-                st.line_chart(mdf.set_index("timestamp")[mem_metrics])
-            st.download_button(
-                "Download Memory CSV",
-                mdf.to_csv(index=False).encode("utf-8"),
-                file_name="memory.csv",
-                mime="text/csv",
-            )
+        from src.app.tabs import memory as memory_tab
+
+        memory_tab.render(path, prefer)
 
     # Disk Tab
     with tabs[2]:
-        try:
-            ddf, dfmt = load_disk_df(path, prefer)
-            st.caption(f"Parsed as {dfmt}")
-        except Exception as e:
-            st.error(f"Disk read failed: {e}")
-            ddf = None
-        if ddf is not None and not ddf.empty:
-            devs = (
-                sorted(pd.Series(ddf["dev"]).dropna().astype(str).unique().tolist())
-                if "dev" in ddf.columns
-                else []
-            )
-            sel_devs = st.multiselect("Devices", devs, default=devs[:2])
+        from src.app.tabs import disk as disk_tab
 
-            # Split into sub-tabs by unit to avoid mixing scales
-            disk_tabs = st.tabs(["IOPS/Throughput", "Latency", "Utilization", "Capacity"])
-
-            # IOPS/Throughput (tps, rkB_s, wkB_s)
-            with disk_tabs[0]:
-                g1 = [c for c in ["tps", "rkB_s", "wkB_s"] if c in ddf.columns]
-                sel_g1 = st.multiselect("Metrics", g1, default=g1)
-                if sel_devs and sel_g1:
-                    series = {}
-                    for m in sel_g1:
-                        for dev in sel_devs:
-                            key = f"{m}[{dev}]"
-                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
-                    if series:
-                        st.line_chart(pd.concat(series, axis=1).sort_index())
-
-            # Latency (await in ms)
-            with disk_tabs[1]:
-                g2 = [c for c in ["await"] if c in ddf.columns]
-                sel_g2 = st.multiselect("Metrics", g2, default=g2)
-                if sel_devs and sel_g2:
-                    series = {}
-                    for m in sel_g2:
-                        for dev in sel_devs:
-                            key = f"{m}[{dev}]"
-                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
-                    if series:
-                        st.line_chart(pd.concat(series, axis=1).sort_index())
-
-            # Utilization (% of time device was busy)
-            with disk_tabs[2]:
-                g3 = [c for c in ["util_pct"] if c in ddf.columns]
-                sel_g3 = st.multiselect("Metrics", g3, default=g3)
-                if sel_devs and sel_g3:
-                    series = {}
-                    for m in sel_g3:
-                        for dev in sel_devs:
-                            key = f"{m}[{dev}]"
-                            series[key] = ddf.loc[ddf["dev"] == dev].set_index("timestamp")[m]
-                    if series:
-                        st.line_chart(pd.concat(series, axis=1).sort_index())
-
-            # Capacity (filesystem-free/used, percent used)
-            with disk_tabs[3]:
-                try:
-                    fsdf, fsfmt = load_fs_df(path, prefer)
-                    st.caption(f"Parsed FS as {fsfmt}")
-                except Exception as e:
-                    st.error(f"Filesystem read failed: {e}")
-                    fsdf = None
-                if fsdf is not None and not fsdf.empty:
-                    filesystems = (
-                        sorted(pd.Series(fsdf["filesystem"]).dropna().astype(str).unique().tolist())
-                        if "filesystem" in fsdf.columns
-                        else []
-                    )
-                    sel_fs = st.multiselect("Filesystems", filesystems, default=filesystems[:2])
-                    cap_metrics_all = [
-                        c
-                        for c in [
-                            "mb_free",
-                            "mb_used",
-                            "fsused_pct",
-                            "ufsused_pct",
-                            "inodes_used_pct",
-                        ]
-                        if c in fsdf.columns
-                    ]
-                    sel_cap = st.multiselect(
-                        "Metrics",
-                        cap_metrics_all,
-                        default=[m for m in ["mb_free", "fsused_pct"] if m in cap_metrics_all],
-                    )
-                    if sel_fs and sel_cap:
-                        series = {}
-                        for m in sel_cap:
-                            for fs in sel_fs:
-                                key = f"{m}[{fs}]"
-                                series[key] = fsdf.loc[fsdf["filesystem"] == fs].set_index(
-                                    "timestamp"
-                                )[m]
-                        if series:
-                            st.line_chart(pd.concat(series, axis=1).sort_index())
-
-            st.download_button(
-                "Download Disk CSV",
-                ddf.to_csv(index=False).encode("utf-8"),
-                file_name="disk.csv",
-                mime="text/csv",
-            )
+        disk_tab.render(path, prefer)
 
     # Network Tab
     with tabs[3]:
-        try:
-            ndf, nfmt = load_net_df(path, prefer)
-            st.caption(f"Parsed as {nfmt}")
-        except Exception as e:
-            st.error(f"Network read failed: {e}")
-            ndf = None
-        if ndf is not None and not ndf.empty:
-            ifaces = (
-                sorted(pd.Series(ndf["iface"]).dropna().astype(str).unique().tolist())
-                if "iface" in ndf.columns
-                else []
-            )
-            sel_ifaces = st.multiselect("Interfaces", ifaces, default=ifaces[:2])
-            net_metrics_all = [
-                c
-                for c in ["rxkB_s", "txkB_s", "rxpck_s", "txpck_s", "ifutil_pct"]
-                if c in ndf.columns
-            ]
-            net_metrics = st.multiselect(
-                "Metrics",
-                net_metrics_all,
-                default=[m for m in ["rxkB_s", "txkB_s"] if m in net_metrics_all],
-            )
-            if sel_ifaces and net_metrics:
-                series = {}
-                for m in net_metrics:
-                    for iface in sel_ifaces:
-                        key = f"{m}[{iface}]"
-                        series[key] = ndf.loc[ndf["iface"] == iface].set_index("timestamp")[m]
-                if series:
-                    chart_df = pd.concat(series, axis=1).sort_index()
-                    st.line_chart(chart_df)
-            st.download_button(
-                "Download Network CSV",
-                ndf.to_csv(index=False).encode("utf-8"),
-                file_name="network.csv",
-                mime="text/csv",
-            )
+        from src.app.tabs import network as network_tab
+
+        network_tab.render(path, prefer)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ repos:
       - id: ruff-format
       - id: ruff
         args: ["--fix", "--exit-non-zero-on-fix"]
+        stages: [pre-commit]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -23,3 +24,12 @@ repos:
         language: python
         types: [python]
         additional_dependencies: ["pyright==1.1.377"]
+        stages: [pre-commit]
+
+      # Run full repo checks before push to mirror CI behavior
+      - id: repo-check
+        name: repo-check (ruff format/check + pyright)
+        language: system
+        entry: bash -lc 'mise run check'
+        pass_filenames: false
+        stages: [pre-push]

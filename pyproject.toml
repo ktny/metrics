@@ -49,3 +49,4 @@ reportMissingImports = true
 reportMissingTypeStubs = false
 venvPath = "."
 venv = ".venv"
+extraPaths = ["src"]
