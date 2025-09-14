@@ -24,11 +24,13 @@
 ## Testing Guidelines
 - 将来テストは `tests/` に配置し、`src/` とミラー命名（例: `tests/metrics/test_foo.py`）。
 - 変更箇所は 80% 以上のカバレッジを目安。CI で `mise run lint` / `typecheck` を通すこと。
+  - pre-commit は commit 時に走り、push 直前には pre-push で `mise run check` を全体実行します。
 
 ## Commit & Pull Request Guidelines
 - Conventional Commits 準拠: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`。
 - 小さく意味のあるコミット。必要に応じてサンプルやドキュメントを更新。
 - PR は概要、再現/確認手順、関連 Issue、UI 変更はスクショを添付。破壊的変更は明記。
+  - 注意: `--no-verify` によるフック回避は禁止。CI が落ちるため、ローカルで `mise run setup` を実行しフックを有効化してください。
 
 ## Security & Configuration Tips
 - シークレットはコミット禁止（`.env.example` を共有し、実値は環境変数で）。

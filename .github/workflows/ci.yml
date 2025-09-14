@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies (frozen)
         run: mise run setup
 
+      - name: Pre-commit (all files)
+        run: uv run pre-commit run --all-files
+
       - name: Format + Lint + Type-check
         run: mise run check
 
