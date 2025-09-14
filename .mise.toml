@@ -4,7 +4,41 @@ uv = "0.8.17"
 [tasks]
 setup = { description = "Deps(frozen) + git hooks", run = "uv sync --frozen && uv run pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push" }
 dev = { description = "Run app", run = "uv run streamlit run app.py" }
-sample = { description = "Generate 7-day dummy SAR under logs/sample/saYYYYMMDD", run = "bash -lc 'set -e; ROOT=logs/sample; mkdir -p \"$ROOT\"; BASE=\"$ROOT/sa_base\"; if command -v sar >/dev/null; then sar -o \"$BASE\" 1 1 >/dev/null; echo \"Created base via sar: $BASE\"; elif [ -f samples/sar_v12.dat ]; then cp -f samples/sar_v12.dat \"$BASE\"; echo \"Copied samples/sar_v12.dat as base: $BASE\"; else echo \"No sar binary and no samples/sar_v12.dat available\"; exit 1; fi; for i in $(seq 0 6); do D=$(date -d \"-$i day\" +%Y%m%d); cp -f \"$BASE\" \"$ROOT/sa$D\"; echo \"Wrote $ROOT/sa$D\"; done'" }
+sample = { description = "Generate 7-day SAR with visible spikes under logs/sample/saYYYYMMDD", run = """
+bash -lc '
+set -e
+ROOT=logs/sample
+mkdir -p "$ROOT"
+
+if ! command -v sar >/dev/null; then
+  echo "sar not found; attempting fallback copy from samples/sar_v12.dat"
+  if [ -f samples/sar_v12.dat ]; then
+    for i in $(seq 0 6); do D=$(date -d "-$i day" +%Y%m%d); cp -f samples/sar_v12.dat "$ROOT/sa$D"; echo "Copied samples/sar_v12.dat -> $ROOT/sa$D"; done
+    exit 0
+  else
+    echo "No sar binary and no samples/sar_v12.dat available" >&2
+    exit 1
+  fi
+fi
+
+for i in $(seq 0 6); do
+  D=$(date -d "-$i day" +%Y%m%d)
+  OUT="$ROOT/sa$D"
+  echo "Collecting $OUT (10s with synthetic spikes)"
+  (sar -o "$OUT" 1 10 >/dev/null 2>&1) &
+  SAR_PID=$!
+  # CPU spike ~3s
+  sleep 2
+  (yes > /dev/null) & P1=$!; sleep 3; kill $P1 2>/dev/null || true
+  # Disk spike
+  dd if=/dev/zero of="$ROOT/io_$D.bin" bs=1M count=64 oflag=direct 2>/dev/null || true
+  rm -f "$ROOT/io_$D.bin"
+  # Short CPU spike again
+  (yes > /dev/null) & P2=$!; sleep 2; kill $P2 2>/dev/null || true
+  wait $SAR_PID 2>/dev/null || true
+done
+'
+""" }
 fmt = { description = "Format code", run = "uv run ruff format ." }
 lint = { description = "Lint code", run = "uv run ruff check ." }
 fix = { description = "Apply lint fixes", run = "uv run ruff check . --fix" }

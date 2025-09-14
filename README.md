@@ -16,7 +16,10 @@ A simple, browser-based viewer for Linux sar files (sysstat). Supports v12 JSON 
 ## Quick Start
 - Install tools: `mise install` (installs uv as declared in `.mise.toml`)
 - Sync deps: `mise run setup` (runs `uv sync --frozen` with Python 3.10)
-- Generate samples (under logs/): `mise run sample` (creates `logs/dir1/saDD`)
+- Generate samples (under logs/): `mise run sample`
+  - Creates `logs/sample/saYYYYMMDD` for the last 7 days
+  - Uses `sar -o` with short, synthetic CPU/IO spikes so charts are obvious
+  - If `sar` is unavailable, falls back to copying `samples/sar_v12.dat` (identical content)
 - Run app: `mise run dev` and open http://localhost:8501
 
 ## Usage
