@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Literal
 
 import pandas as pd
@@ -10,25 +11,56 @@ from src.app.parsers.filesystem import parse_fs_csv, parse_fs_json
 from src.app.services.sadf import convert_with_sadf
 
 
-def load_disk_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-d",), prefer)
+def load_disk_df(
+    path: str | None,
+    prefer: Literal["auto", "12", "11"],
+    source: Literal["sar", "csv"],
+    csv_date_dir: str | None,
+) -> tuple[pd.DataFrame, str]:
+    if source == "csv":
+        cp = os.path.join(csv_date_dir or "", "disk.csv")
+        if not os.path.isfile(cp):
+            raise FileNotFoundError("disk.csv not found under selected date directory")
+        df = pd.read_csv(cp)
+        if "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        return df, "csv"
+    fmt, text = convert_with_sadf(path or "", ("-d",), prefer)
     if fmt == "json":
         return parse_disk_json(text), "json"
     else:
         return parse_disk_csv(text), "csv"
 
 
-def load_fs_df(path: str, prefer: Literal["auto", "12", "11"]) -> tuple[pd.DataFrame, str]:
-    fmt, text = convert_with_sadf(path, ("-F",), prefer)
+def load_fs_df(
+    path: str | None,
+    prefer: Literal["auto", "12", "11"],
+    source: Literal["sar", "csv"],
+    csv_date_dir: str | None,
+) -> tuple[pd.DataFrame, str]:
+    if source == "csv":
+        cp = os.path.join(csv_date_dir or "", "fs.csv")
+        if not os.path.isfile(cp):
+            raise FileNotFoundError("fs.csv not found under selected date directory")
+        df = pd.read_csv(cp)
+        if "timestamp" in df.columns:
+            df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+        return df, "csv"
+    fmt, text = convert_with_sadf(path or "", ("-F",), prefer)
     if fmt == "json":
         return parse_fs_json(text), "json"
     else:
         return parse_fs_csv(text), "csv"
 
 
-def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
+def render(
+    path: str | None,
+    prefer: Literal["auto", "12", "11"],
+    source: Literal["sar", "csv"],
+    csv_date_dir: str | None,
+) -> None:
     try:
-        ddf, dfmt = load_disk_df(path, prefer)
+        ddf, dfmt = load_disk_df(path, prefer, source, csv_date_dir)
         st.caption(f"Parsed as {dfmt}")
     except Exception as e:  # pragma: no cover - UI feedback
         st.error(f"Disk read failed: {e}")
@@ -63,7 +95,7 @@ def render(path: str, prefer: Literal["auto", "12", "11"]) -> None:
     with tabs[3]:
         # Capacity uses filesystem data (-F)
         try:
-            fsdf, _ = load_fs_df(path, prefer)
+            fsdf, _ = load_fs_df(path, prefer, source, csv_date_dir)
         except Exception as e:  # pragma: no cover - UI feedback
             st.error(f"Filesystem read failed: {e}")
             fsdf = None

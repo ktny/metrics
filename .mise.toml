@@ -48,96 +48,77 @@ test = { description = "Run tests", run = "uv run pytest -q" }
 clean = { description = "Clean artifacts (logs + caches)", run = "bash -lc 'rm -rf logs/* 2>/dev/null || true; find . -name __pycache__ -type d -exec rm -rf {} +'" }
 precommit = { description = "Run pre-commit all", run = "uv run pre-commit run --all-files" }
 [tasks."sample:csv"]
-description = "Generate dummy CSV bundle under logs/sample/csv/YYYY-MM-DD/{cpu,memory,disk,network,fs}.csv"
+description = "Generate per-resource CSV under logs/sample/csv/YYYY-MM-DD/{cpu,memory,disk,network,fs}.csv (last 7 days)"
 run = """
 bash -lc '
 set -e
 ROOT=logs/sample/csv
 mkdir -p "$ROOT"
-
-gen_cpu() {
-  D="$1"; DIR="$ROOT/$D"; mkdir -p "$DIR"
-  python3 - <<PY
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-start = datetime.strptime("$D 12:00:00", "%Y-%m-%d %H:%M:%S")
-t = pd.date_range(start, periods=30, freq="S")
-cpu = ["all"]*30
-user = np.zeros(30); user[5:10]=np.linspace(10,80,5); user[10:15]=np.linspace(80,10,5)
-system = np.zeros(30); system[20:25]=50
-iowait = np.zeros(30)
-idle = 100 - user - system - iowait
-pd.DataFrame({"timestamp":t, "cpu":cpu, "user":user, "system":system, "iowait":iowait, "idle":idle}).to_csv("$DIR/cpu.csv", index=False)
-PY
-}
-
-gen_mem() {
-  D="$1"; DIR="$ROOT/$D"; mkdir -p "$DIR"
-  python3 - <<PY
-import pandas as pd
-from datetime import datetime, timedelta
-import numpy as np
-start = datetime.strptime("$D 12:00:00", "%Y-%m-%d %H:%M:%S")
-t = pd.date_range(start, periods=30, freq="S")
-memused_pct = np.linspace(40,60,30)
-cached = np.linspace(1000,1500,30)
-buffers = np.linspace(200,300,30)
-pd.DataFrame({"timestamp":t, "memused_pct":memused_pct, "cached":cached, "buffers":buffers}).to_csv("$DIR/memory.csv", index=False)
-PY
-}
-
-gen_disk() {
-  D="$1"; DIR="$ROOT/$D"; mkdir -p "$DIR"
-  python3 - <<PY
-import pandas as pd
-from datetime import datetime
-import numpy as np
-start = datetime.strptime("$D 12:00:00", "%Y-%m-%d %H:%M:%S")
-t = pd.date_range(start, periods=30, freq="S")
-dev = ["sda"]*30
-tps = np.zeros(30); tps[8:12]=[50,150,50,10]
-rkB_s = np.zeros(30); rkB_s[8:12]=[0,4096,0,0]
-wkB_s = np.zeros(30); wkB_s[20:24]=[0,8192,0,0]
-await = np.zeros(30); await[8:12]=[2,50,2,1]
-util_pct = np.zeros(30); util_pct[8:12]=[10,95,20,5]
-pd.DataFrame({"timestamp":t, "dev":dev, "tps":tps, "rkB_s":rkB_s, "wkB_s":wkB_s, "await":await, "util_pct":util_pct}).to_csv("$DIR/disk.csv", index=False)
-PY
-}
-
-gen_net() {
-  D="$1"; DIR="$ROOT/$D"; mkdir -p "$DIR"
-  python3 - <<PY
-import pandas as pd
-from datetime import datetime
-import numpy as np
-start = datetime.strptime("$D 12:00:00", "%Y-%m-%d %H:%M:%S")
-t = pd.date_range(start, periods=30, freq="S")
-iface = ["eth0"]*30
-rxkB_s = np.zeros(30); rxkB_s[15:18]=[0,512,0]
-txkB_s = np.zeros(30); txkB_s[15:18]=[0,2048,0]
-pd.DataFrame({"timestamp":t, "iface":iface, "rxkB_s":rxkB_s, "txkB_s":txkB_s}).to_csv("$DIR/network.csv", index=False)
-PY
-}
-
-gen_fs() {
-  D="$1"; DIR="$ROOT/$D"; mkdir -p "$DIR"
-  python3 - <<PY
-import pandas as pd
-from datetime import datetime
-import numpy as np
-start = datetime.strptime("$D 12:00:00", "%Y-%m-%d %H:%M:%S")
-t = pd.date_range(start, periods=5, freq="min")
-filesystem = ["/dev/sda1"]*len(t)
-mb_free = [950000,940000,930000,920000,910000]
-fsused_pct = [5,6,7,8,9]
-pd.DataFrame({"timestamp":t, "filesystem":filesystem, "mb_free":mb_free, "fsused_pct":fsused_pct}).to_csv("$DIR/fs.csv", index=False)
-PY
-}
-
 for i in $(seq 0 6); do
   D=$(date -d "-$i day" +%Y-%m-%d)
-  gen_cpu "$D"; gen_mem "$D"; gen_disk "$D"; gen_net "$D"; gen_fs "$D"
+  DIR="$ROOT/$D"
+  mkdir -p "$DIR"
+  echo "Generating $DIR/*.csv"
+  python3 - <<PY
+import pandas as pd
+import numpy as np
+from datetime import datetime
+D = "$D"
+start = datetime.strptime(f"{D} 12:00:00", "%Y-%m-%d %H:%M:%S")
+t = pd.date_range(start, periods=30, freq="s")
+
+# CPU
+cpu = pd.DataFrame({
+  "timestamp": t,
+  "cpu": ["all"]*30,
+  "user": np.r_[np.zeros(5), np.linspace(10,80,5), np.linspace(80,10,5), np.zeros(15)],
+  "system": np.r_[np.zeros(20), np.full(5,50), np.zeros(5)],
+  "iowait": np.zeros(30),
+  "idle": 0.0,
+})
+cpu["idle"] = 100 - cpu["user"] - cpu["system"] - cpu["iowait"]
+cpu.to_csv(f"$DIR/cpu.csv", index=False)
+
+# Memory
+mem = pd.DataFrame({
+  "timestamp": t,
+  "memused_pct": np.linspace(40,60,30),
+  "cached": np.linspace(1000,1500,30),
+  "buffers": np.linspace(200,300,30),
+})
+mem.to_csv(f"$DIR/memory.csv", index=False)
+
+# Disk
+disk = pd.DataFrame({
+  "timestamp": t,
+  "dev": ["sda"]*30,
+  "tps": np.r_[np.zeros(8), [50,150,50,10], np.zeros(18)],
+  "rkB_s": np.r_[np.zeros(8), [0,4096,0,0], np.zeros(18)],
+  "wkB_s": np.r_[np.zeros(20), [0,8192,0,0], np.zeros(6)],
+  "await": np.r_[np.zeros(8), [2,50,2,1], np.zeros(18)],
+  "util_pct": np.r_[np.zeros(8), [10,95,20,5], np.zeros(18)],
+})
+disk.to_csv(f"$DIR/disk.csv", index=False)
+
+# Network
+net = pd.DataFrame({
+  "timestamp": t,
+  "iface": ["eth0"]*30,
+  "rxkB_s": np.r_[np.zeros(15), [0,512,0], np.zeros(12)],
+  "txkB_s": np.r_[np.zeros(15), [0,2048,0], np.zeros(12)],
+})
+net.to_csv(f"$DIR/network.csv", index=False)
+
+# Filesystem capacity
+fs_t = pd.date_range(start, periods=5, freq="min")
+fs = pd.DataFrame({
+  "timestamp": fs_t,
+  "filesystem": ["/dev/sda1"]*len(fs_t),
+  "mb_free": [950000,940000,930000,920000,910000],
+  "fsused_pct": [5,6,7,8,9],
+})
+fs.to_csv(f"$DIR/fs.csv", index=False)
+PY
 done
 '
 """
