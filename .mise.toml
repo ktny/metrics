@@ -5,6 +5,7 @@ uv = "0.8.17"
 setup = { description = "Deps(frozen) + git hooks", run = "uv sync --frozen && uv run pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push" }
 dev = { description = "Run app", run = "uv run streamlit run app.py" }
 sample = { description = "Generate SAR samples", run = "mkdir -p samples && sar -o samples/sar_v12.dat 1 5 >/dev/null && sadf -j samples/sar_v12.dat -- -A > samples/sar_v12.json && LC_ALL=C sadf -d samples/sar_v12.dat -- -A > samples/sar_v12.csv" }
+"sample:logs" = { description = "Generate dummy SAR into logs/dir1", run = "bash -lc 'set -e; mkdir -p logs/dir1; if command -v sar >/dev/null; then sar -o logs/dir1/sa$(date +%d) 1 5 >/dev/null; echo \"Created logs/dir1/sa$(date +%d)\"; elif [ -f samples/sar_v12.dat ]; then cp -f samples/sar_v12.dat logs/dir1/sa$(date +%d); echo \"Copied samples/sar_v12.dat to logs/dir1/sa$(date +%d)\"; else echo \"No sar binary and no samples/sar_v12.dat available\"; exit 1; fi'" }
 fmt = { description = "Format code", run = "uv run ruff format ." }
 lint = { description = "Lint code", run = "uv run ruff check ." }
 fix = { description = "Apply lint fixes", run = "uv run ruff check . --fix" }

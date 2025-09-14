@@ -17,10 +17,11 @@ A simple, browser-based viewer for Linux sar files (sysstat). Supports v12 JSON 
 - Install tools: `mise install` (installs uv as declared in `.mise.toml`)
 - Sync deps: `mise run setup` (runs `uv sync --frozen` with Python 3.10)
 - Generate samples: `mise run sample`
+- Put a dummy SAR under logs: `mise run sample:logs` (creates `logs/dir1/saDD`)
 - Run app: `mise run dev` and open http://localhost:8501
 
 ## Usage
-- Input at the top: choose `samples/sar_v12.dat` or upload your own `.dat` file
+- Input at the top: choose a logs subdir (e.g., `dir1`) and filter by Date
 - Tabs:
   - CPU: select metrics (user/system/iowait/idle), filter CPUs (`all,0,1`)
   - Memory: typical series like `memused_pct`, `cached`, `buffers`

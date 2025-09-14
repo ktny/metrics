@@ -11,7 +11,8 @@
   - `mise install` — `.mise.toml` の [tools]（uv など）をインストール。
   - `mise run setup` — 依存同期（`uv sync --frozen`）＋ pre-commit フック導入。
   - `mise run dev` — Streamlit 起動。
-  - `mise run sample` — sar 収集→`sadf -j/-d` で JSON/CSV 生成。
+- `mise run sample` — sar 収集→`sadf -j/-d` で JSON/CSV 生成。
+  - `mise run sample:logs` — `logs/dir1/saDD` にダミーの SAR を生成。
   - `mise run fmt` / `mise run lint` — ruff フォーマット/静的解析。
   - `mise run fix` — ruff 自動修正。
   - `mise run type` / `mise run check` — 型チェック単体 / まとめ（format-check + lint + type）。
