@@ -2,7 +2,7 @@
 uv = "0.8.17"
 
 [tasks]
-setup = { description = "Deps(frozen) + git hooks", run = "uv sync --frozen && uv run pre-commit install --install-hooks" }
+setup = { description = "Deps(frozen) + git hooks", run = "uv sync --frozen && uv run pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push" }
 dev = { description = "Run app", run = "uv run streamlit run app.py" }
 sample = { description = "Generate SAR samples", run = "mkdir -p samples && sar -o samples/sar_v12.dat 1 5 >/dev/null && sadf -j samples/sar_v12.dat -- -A > samples/sar_v12.json && LC_ALL=C sadf -d samples/sar_v12.dat -- -A > samples/sar_v12.csv" }
 fmt = { description = "Format code", run = "uv run ruff format ." }
