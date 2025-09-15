@@ -49,3 +49,4 @@ samples/*.dat
 # Logs
 logs/
 *.log
+.pre-commit-cache/
