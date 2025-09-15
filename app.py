@@ -17,8 +17,6 @@ def convert_with_sadf_cached(
     return _svc_convert_with_sadf(path, sar_args, prefer)
 
 
-
-
 ## Unused legacy load_* helpers removed
 
 
@@ -152,7 +150,7 @@ def main():
         st.info("Select a CSV date directory under logs/<dir>/csv.")
         return
 
-    tabs = st.tabs(["CPU", "Memory", "Disk", "Network"])
+    tabs = st.tabs(["CPU", "Memory", "Disk", "Network", "Filesystem"])
 
     # CPU Tab
     with tabs[0]:
@@ -179,6 +177,12 @@ def main():
         network_tab.render(
             path, prefer, source if source in ("sar", "csv") else "sar", csv_date_dir
         )
+
+    # Filesystem Tab
+    with tabs[4]:
+        from src.app.tabs import filesystem as fs_tab
+
+        fs_tab.render(path, prefer, source if source in ("sar", "csv") else "sar", csv_date_dir)
 
 
 if __name__ == "__main__":

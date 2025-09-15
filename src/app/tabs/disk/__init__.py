@@ -79,9 +79,8 @@ def render(
     )
     sel_devs = st.multiselect("Devices", devs, default=devs[:2])
 
-    tabs = st.tabs(["IOPS/Throughput", "Latency", "Utilization", "Capacity"])
+    tabs = st.tabs(["IOPS/Throughput", "Latency", "Utilization"])
 
-    from .capacity import render as render_cap
     from .latency import render as render_lat
     from .throughput import render as render_thr
     from .utilization import render as render_utl
@@ -92,18 +91,6 @@ def render(
         render_lat(ddf, sel_devs)
     with tabs[2]:
         render_utl(ddf, sel_devs)
-    with tabs[3]:
-        # Capacity uses filesystem data (-F)
-        try:
-            fsdf, _ = load_fs_df(path, prefer, source, csv_date_dir)
-        except Exception as e:  # pragma: no cover - UI feedback
-            st.error(f"Filesystem read failed: {e}")
-            fsdf = None
-        if fsdf is not None and not fsdf.empty:
-            render_cap(fsdf)
-        else:
-            st.info("No filesystem data")
-
     st.download_button(
         "Download Disk CSV",
         ddf.to_csv(index=False).encode("utf-8"),
