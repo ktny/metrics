@@ -7,7 +7,6 @@ import streamlit as st
 
 from src.app.services.sadf import convert_with_sadf as _svc_convert_with_sadf
 
-
 ## Legacy helper removed
 
 
@@ -18,44 +17,6 @@ def convert_with_sadf_cached(
     return _svc_convert_with_sadf(path, sar_args, prefer)
 
 
-def parse_cpu_json(text: str):
-    return None
-
-
-def parse_cpu_csv(text: str):
-    return None
-
-
-def parse_mem_json(text: str):
-    return None
-
-
-def parse_mem_csv(text: str):
-    return None
-
-
-def parse_disk_json(text: str):
-    return None
-
-
-def parse_disk_csv(text: str):
-    return None
-
-
-def parse_net_json(text: str):
-    return None
-
-
-def parse_net_csv(text: str):
-    return None
-
-
-def parse_fs_json(text: str):
-    return None
-
-
-def parse_fs_csv(text: str):
-    return None
 
 
 ## Unused legacy load_* helpers removed
